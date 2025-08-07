@@ -1,22 +1,34 @@
 import { UserCard } from "../components/UserCard";
 import { cleanUser } from "../libs/CleanUser";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const local_key = "random_user_amount";
+
 export default function RandomUserPage() {
-  const [users, setUsers] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [genAmount, setGenAmount] = useState(1);
+  //const [genAmount, setGenAmount] = useState(1);
+
+  const [genAmount, setGenAmount] = useState(()=> {
+    const saved = localStorage.getItem(local_key);
+    return saved ? Number(saved) : 1;
+  })
+
+  useEffect(()=> { // save ค่าลง localStorage
+    localStorage.setItem(local_key, String(genAmount));
+  }, [genAmount]);
 
   const generateBtnOnClick = async () => {
     setIsLoading(true);
     const resp = await axios.get(
       `https://randomuser.me/api/?results=${genAmount}`
     );
-    setIsLoading(false);
     const users = resp.data.results;
-    //Your code here
-    //Process result from api response with map function. Tips use function from /src/libs/CleanUser
-    //Then update state with function : setUsers(...)
+    const cleanUsers = users.map(cleanUser);
+    console.log(cleanUsers);
+    setUsers(cleanUsers);
+    setIsLoading(false);
   };
 
   return (
@@ -28,7 +40,7 @@ export default function RandomUserPage() {
           className="form-control text-center"
           style={{ maxWidth: "100px" }}
           type="number"
-          onChange={(event: any) => setGenAmount(event.target.value)}
+          onChange={(event: any) => setGenAmount(Number(event.target.value))}
           value={genAmount}
         />
         <button className="btn btn-dark" onClick={generateBtnOnClick}>
@@ -38,7 +50,18 @@ export default function RandomUserPage() {
       {isLoading && (
         <p className="display-6 text-center fst-italic my-4">Loading ...</p>
       )}
-      {users && !isLoading && users.map(/*code map rendering UserCard here */)}
+      
+      {users.length > 0 &&
+        users.map((user, idx) => (
+          <UserCard
+            key={idx}
+            name={user.name}
+            imgUrl={user.imgUrl}
+            address={user.address}
+            email={user.email}
+        />
+      ))
+    }
     </div>
   );
 }
